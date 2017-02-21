@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>放大镜+滤镜效果</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="public/html5.js"></script>
+    <script type="text/javascript" src="public/excanvas.js"></script>
+    <![endif]-->
+</head>
+<body>
+<p>在彩色图上点击并拖动鼠标可实现放大镜效果，鼠标点击按钮则会在右侧框中显示相应的滤镜效果</p>
+<canvas id="canvasa" style="margin: 20px auto;border: 1px solid #aaa;">您的浏览器不支持canvas</canvas>
+<canvas id="canvasb" style="margin: 20px auto;border: 1px solid #aaa;">您的浏览器不支持canvas</canvas>
+<div style="margin: 20px auto;text-align: center">
+    <button>GREY</button>
+    <button>BLACK & WHITE</button>
+    <button>REVERSE</button>
+</div>
+<script>
+    var image=new Image();
+    window.onload=function(){
+        var canvasA=document.getElementById('canvasa');
+        var contextA=canvasA.getContext('2d');
+        var canvasB=document.getElementById('canvasb');
+        var contextB=canvasB.getContext('2d');
+
+        canvasA.width=645;
+        canvasA.height=360;
+        canvasB.width=645;
+        canvasB.height=360;
+
+        image.src='2.jpg';
+        image.onload=function () {
+            contextA.drawImage(image,0,0,canvasA.width,canvasA.height);
+        };
+
+
+
+        document.getElementsByTagName('button')[0].onclick=function () {
+            greyEffect()
+        };
+        document.getElementsByTagName('button')[1].onclick=function () {
+            blackWhite()
+        };
+        document.getElementsByTagName('button')[2].onclick=function () {
+            reverse()
+        };
+
+        canvasA.onmousedown=function (e) {
+            e.preventDefault();
+            point=canvasClient(e);
+            drawOffCanvasWithMagnifier(true,point);
+            isMouseDowm=true;
+
+        };
+
+        canvasA.onmousemove=function (e) {
+            e.preventDefault();
+            point=canvasClient(e);
+            if (isMouseDowm==true){
+                drawOffCanvasWithMagnifier(true,point)
+            }
+        };
+
+        canvasA.onmouseup=function (e) {
+            e.preventDefault();
+            isMouseDowm=false;
+            drawOffCanvasWithMagnifier(false)
+        };
+        canvasA.onmouseout=function (e) {
+            e.preventDefault();
+            isMouseDowm=false;
+            drawOffCanvasWithMagnifier(false)
+        };
+
+        function canvasClient(e) {
+            return {x:e.clientX-canvasA.offsetLeft,y:e.clientY-canvasA.offsetTop}
+        }
+        function drawOffCanvasWithMagnifier(isDrawMagnifier,point) {
+            contextA.clearRect(0,0,canvasA.width,canvasA.height);
+            contextA.drawImage(image,0,0,canvasA.width,canvasA.height);
+            if (isDrawMagnifier==true){
+                drawMagnifier(point)
+            }
+        }
+        function drawMagnifier(point) {
+            var magnifierR=100;
+            var scale=4;
+
+            var sx=scale*point.x-magnifierR;
+            var sy=scale*point.y-magnifierR;
+
+            var dx=point.x-magnifierR;
+            var dy=point.y-magnifierR;
+
+            contextA.save();
+            contextA.lineWidth='16';
+            contextA.strokeStyle='#333';
+            contextA.beginPath();
+            contextA.arc(point.x,point.y,magnifierR,0,2*Math.PI);
+            contextA.closePath();
+            contextA.stroke();
+            contextA.clip();
+            contextA.drawImage(image,sx,sy,2*magnifierR,2*magnifierR,dx,dy,2*magnifierR,2*magnifierR);
+            contextA.restore();
+        }
+
+//  滤镜效果
+        function greyEffect() {
+            contextB.clearRect(0,0,canvasB.width,canvasB.height)
+            var imageData=contextA.getImageData(0,0,canvasA.width,canvasA.height);
+            var pixelData=imageData.data;
+            for (var i=0;i<canvasB.width*canvasB.height;i++){
+                var r=pixelData[i*4+0];
+                var g=pixelData[i*4+1];
+                var b=pixelData[i*4+2];
+
+                var grey=r*0.3+g*0.59+b*0.11;
+
+                pixelData[i*4+0]=grey;
+                pixelData[i*4+1]=grey;
+                pixelData[i*4+2]=grey;
+            }
+            contextB.putImageData(imageData,0,0,0,0,canvasB.width,canvasB.height)
+        }
+        function blackWhite() {
+            contextB.clearRect(0,0,canvasB.width,canvasB.height)
+            var imageData=contextA.getImageData(0,0,canvasA.width,canvasA.height);
+            var pixelData=imageData.data;
+            for (var i=0;i<canvasB.width*canvasB.height;i++){
+                var r=pixelData[4*i+0];
+                var g=pixelData[4*i+1];
+                var b=pixelData[4*i+2];
+
+                var grey=r*0.3+g*0.59+b*0.11;
+                var v;
+                if(grey<255/2){
+                    v=0
+                }else {
+                    v=255;
+                }
+                pixelData[4*i+0]=v;
+                pixelData[4*i+1]=v;
+                pixelData[4*i+2]=v;
+            }
+            contextB.putImageData(imageData,0,0,0,0,canvasB.width,canvasB.height)
+        }
+        function reverse() {
+            contextB.clearRect(0,0,canvasB.width,canvasB.height)
+            var imageData=contextA.getImageData(0,0,canvasA.width,canvasA.height);
+            var pixelData=imageData.data;
+            for (var i=0;i<canvasB.width*canvasB.height;i++){
+                var r=pixelData[4*i+0];
+                var g=pixelData[4*i+1];
+                var b=pixelData[4*i+2];
+
+                pixelData[4*i+0]=255-r;
+                pixelData[4*i+1]=255-g;
+                pixelData[4*i+2]=255-b;
+            }
+            contextB.putImageData(imageData,0,0,0,0,canvasB.width,canvasB.height)
+        }
+    }
+</script>
+</body>
+</html>
